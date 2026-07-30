@@ -209,6 +209,9 @@ foodImg.src = "Apple.png";
 const goldenAppleImg = new Image();
 goldenAppleImg.src = "Golden-Apple.png";
 
+const lightningImg = new Image();
+lightningImg.src = "Lightning-Bolt.png";
+
 let snake;
 
 //apples
@@ -225,6 +228,16 @@ let gameLoop;
 
 //Particle effects
 let particles = [];
+
+//Speed boost pickup
+let lightningBolt = null;
+let lightningTimer = 0;
+
+let boosted = false;
+
+const NORMAL_SPEED = 100;
+const BOOST_SPEED = 50;
+
 
 //FPS counter
 let fps = 0;
@@ -243,6 +256,11 @@ function initGame() {
 //Golden apple timer
 goldenApple = null;
 goldenAppleTimer = 0;
+
+//lightning bolt timer
+lightningBolt = null;
+lightningTimer = 0;
+boosted = false;
 
 const startX = Math.floor(Math.random() * (tileCount - 6)) + 2;
 const startY = Math.floor(Math.random() * (tileCount - 6)) + 2;
@@ -363,7 +381,7 @@ if (
     head.y === goldenApple.y
 ) {
 
-    score += 5;
+    score += boosted ? 10 : 5;
 
     document.getElementById("score").textContent =
         "Score: " + score;
@@ -391,11 +409,51 @@ if (goldenApple) {
     }
 }
 
+//Spawn lightning bolt
+if (!lightningBolt && Math.random() < 0.01) {
+
+    lightningBolt = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+    };
+}
+
+//Lightning bolt collision
+if (
+    lightningBolt &&
+    head.x === lightningBolt.x &&
+    head.y === lightningBolt.y
+) {
+
+    lightningBolt = null;
+
+    boosted = true;
+
+    lightningTimer = 100;
+
+    clearInterval(gameLoop);
+    gameLoop = setInterval(update, BOOST_SPEED);
+}
+
+//Lightning timer handler
+if (boosted) {
+
+    lightningTimer--;
+
+    if (lightningTimer <= 0) {
+
+        boosted = false;
+
+        clearInterval(gameLoop);
+        gameLoop = setInterval(update, NORMAL_SPEED);
+    }
+}
+
 
 // Eat food
 if (head.x === food.x && head.y === food.y) {
 
-    score++;
+    score += boosted ? 2 : 1;
 
     document.getElementById("score").textContent =
         "Score: " + score;
@@ -521,6 +579,29 @@ if (goldenApple) {
 
   }
 
+
+//Lightning bolt
+if (lightningBolt) {
+
+    const pulse =
+        (Math.sin(Date.now() / 100) + 1) * 4;
+
+    ctx.save();
+
+    ctx.shadowBlur = 20 + pulse;
+    ctx.shadowColor = "#ffff00";
+
+    ctx.drawImage(
+        lightningImg,
+        lightningBolt.x * gridSize,
+        lightningBolt.y * gridSize,
+        gridSize,
+        gridSize
+    );
+
+    ctx.restore();
+}
+
 // RESET SHADOWS
 ctx.shadowBlur = 0;
 ctx.shadowColor = "transparent";
@@ -530,7 +611,24 @@ snake.forEach((segment, index) => {
 
     const hue = (index * 18 + Date.now() / 50) % 360;
 
-    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    if (boosted) {
+
+    const electricHue =
+        (Date.now() / 5) % 360;
+
+    ctx.fillStyle =
+        `hsl(${electricHue},100%,70%)`;
+
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#ffff00";
+}
+else {
+
+    ctx.fillStyle =
+        `hsl(${hue},100%,50%)`;
+
+    ctx.shadowBlur = 0;
+}
 
     ctx.fillRect(
         segment.x * gridSize + 1,
