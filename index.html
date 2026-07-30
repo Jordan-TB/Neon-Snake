@@ -336,16 +336,27 @@ particles = particles.filter(p => p.life > 0);
 
 // Golden apple spawn
 if (!goldenApple && Math.random() < 0.005) {
-	goldenApple = {
-    		x: Math.floor(Math.random() * tileCount),
-    		y: Math.floor(Math.random() * tileCount)
-};
 
-goldenAppleTimer = 80;
+    do {
+        goldenApple = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+    } while (
+        snake.some(seg =>
+            seg.x === goldenApple.x &&
+            seg.y === goldenApple.y
+        ) ||
+        (
+            goldenApple.x === food.x &&
+            goldenApple.y === food.y
+        )
+    );
 
+    goldenAppleTimer = 80;
 }
 
-//Golden Apple collision
+// Golden Apple collision
 if (
     goldenApple &&
     head.x === goldenApple.x &&
@@ -356,6 +367,16 @@ if (
 
     document.getElementById("score").textContent =
         "Score: " + score;
+
+    // Update High Score
+    if (score > highScore) {
+        highScore = score;
+
+        localStorage.setItem("snakeHighScore", highScore);
+
+        document.getElementById("highScore").textContent =
+            "High Score: " + highScore;
+    }
 
     goldenApple = null;
 }
