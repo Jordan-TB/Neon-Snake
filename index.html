@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon-Snake</title>
 <link rel="icon" type="image/png" href="Neon-Snake.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
 
 <style>
     body {
@@ -15,13 +16,18 @@
         flex-direction: column;
         height: 100vh;
         background: #111;
-        color: white;
-        font-family: Verdana, sans-serif;
+        color: green;
+        font-family: "Audiowide", sans-serif;
     }
 
 h1 {
     margin-bottom:10px;
+    font-size: 44px;
     color: #00ffee;
+    text-shadow:
+        0 0 10px #fb00ff,
+	0 0 20px #fb00ff,
+        0 0 30px #fb00ff;
 
     animation: breathe 2s ease-in-out infinite;
 }
@@ -35,16 +41,32 @@ h1 {
         transform: scale(1.1);
     }
 }
+
+   #score {
+
+    	font-size: 32px;
+    	font-weight: bold;
+    	color: blue;
+    	text-shadow:
+        	0 0 10px #00ffee,
+		0 0 20px #00ffee,
+        	0 0 30px #00ffee;
 }
 
-
-    }
-
-    #score,
-    #highScore {
+   #highScore {
     	font-size: 24px;
     	font-weight: bold;
     	color: #00ffee;
+    	text-shadow:
+		0 0 10px #fb00ff,
+		0 0 20px #fb00ff,
+        	0 0 30px #fb00ff;
+}
+
+   #author {
+    	font-size: 18px;
+    	font-weight: bold;
+    	color: blue;
     	text-shadow:
         	0 0 5px #00ffee,
         	0 0 10px #00ffee,
@@ -98,6 +120,50 @@ h1 {
 	0 0 30px #00ff0d;
 }
 
+#startOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 710px;
+    height: 710px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+
+    background: rgba(20, 0, 40, 0.85);
+
+    z-index: 200;
+}
+
+#startText {
+    text-align: center;
+
+    color: blue;
+
+    font-size: 42px;
+    font-weight: bold;
+
+    text-shadow:
+        0 0 10px #00ffee,
+        0 0 20px #00ffee,
+        0 0 30px #00ffee;
+
+    animation: startPulse 1.5s infinite;
+}
+
+@keyframes startPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 </style>
 </head>
 <body>
@@ -105,12 +171,25 @@ h1 {
 <h1>🚨NEON-SNAKE🐍</h1>
 <div id="score">Score: 0</div>
 <div class="game-container">
-	<canvas id="game" width="700" height="700"></canvas>
+<div id="startOverlay">
+    <div id="startText">
+        🚨 NEON-SNAKE 🐍
+        <br><br>
+        Press SPACE to Start
+        <br><br>
+        <span style="font-size:24px;">
+            Use Arrow Keys to Move
+        </span>
+    </div>
+</div>
 
-	<div id="gameOverOverlay">
-		<div id="gameOverText"></div>
-	</div>
-<div id="highScore">High Score: 0</div>   <div id="fps">FPS: 0</div>
+<canvas id="game" width="700" height="700"></canvas>
+
+<div id="gameOverOverlay">
+	<div id="gameOverText"></div>
+</div>
+
+<div id="highScore">High Score: 0</div>   <div id="author">by Jordan-TB</div>
 </div>
 
 <div id="message"></div>
@@ -133,18 +212,32 @@ let particles = [];
 let fps = 0;
 let frameCount = 0;
 let lastFpsUpdate = performance.now();
+let gameStarted = false;
 
 let highScore = localStorage.getItem("snakeHighScore") || 0;
 
 function initGame() {
-    snake = [
-        { x: 10, y: 10 }
-    ];
+
+const startX = Math.floor(Math.random() * (tileCount - 6)) + 2;
+const startY = Math.floor(Math.random() * (tileCount - 6)) + 2;
+
+snake = [
+    { x: startX, y: startY }
+];
 
     food = randomFood();
 
-    dx = 1;
-    dy = 0;
+const directions = [
+    { dx: 1, dy: 0 },   // Right
+    { dx: -1, dy: 0 },  // Left
+    { dx: 0, dy: 1 },   // Down
+    { dx: 0, dy: -1 }   // Up
+];
+
+const dir = directions[Math.floor(Math.random() * directions.length)];
+
+dx = dir.dx;
+dy = dir.dy;
 
     score = 0;
     gameOver = false;
@@ -241,21 +334,6 @@ if (head.x === food.x && head.y === food.y) {
 
 function draw() {
 
-frameCount++;
-
-const now = performance.now();
-
-if (now - lastFpsUpdate >= 1000) {
-    fps = frameCount;
-
-    document.getElementById("fps").textContent =
-        "FPS: " + fps;
-
-    frameCount = 0;
-    lastFpsUpdate = now;
-}
-
-
     // Background
 	const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
 	gradient.addColorStop(0, "#1a0033");
@@ -308,21 +386,23 @@ particles.forEach(p => {
     ctx.restore();
 });
 
+const foodImg = new Image();
+foodImg.src = "Apple.png";
+
     // Food
-   ctx.shadowBlur = 20;
-	ctx.shadowColor = "#ff0080";
+   	ctx.shadowBlur = 20;
+	ctx.shadowColor = "#FF073A";
 
-	ctx.fillStyle = "#ff3399";
 
-	ctx.beginPath();
-	ctx.arc(
-    		food.x * gridSize + gridSize / 2,
-    		food.y * gridSize + gridSize / 2,
-    		gridSize / 2.5,
-    		0,
-    		Math.PI * 2
+	ctx.drawImage(
+    		foodImg,
+    		food.x * gridSize,
+    		food.y * gridSize,
+    		gridSize,
+   		 gridSize
 );
-		ctx.fill();
+
+ctx.shadowBlur = 0;
 
     // Snake
 snake.forEach((segment, index) => {
@@ -339,7 +419,7 @@ snake.forEach((segment, index) => {
     );
 });
 
-ctx.shadowBlur = 0;
+ctx.shadowBlur = 2;
 
 }
 
@@ -363,6 +443,19 @@ function endGame() {
 document.addEventListener("keydown", (e) => {
     const key = e.key;
 
+    // Start Game
+    if (!gameStarted && key === " ") {
+
+        gameStarted = true;
+
+        document.getElementById("startOverlay").style.display = "none";
+
+        initGame();
+
+        return;
+    }
+
+    // Restart Game
     if (gameOver && key === " ") {
         initGame();
         return;
@@ -384,7 +477,6 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-initGame();
 </script>
 
 </body>
