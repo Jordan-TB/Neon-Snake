@@ -23,7 +23,7 @@
 
 h1 {
     margin-bottom:10px;
-    font-size: 44px;
+    font-size: 64px;
     color: #00ffee;
     text-shadow:
         0 0 10px #fb00ff,
@@ -45,7 +45,7 @@ h1 {
 
    #score {
 
-    	font-size: 32px;
+    	font-size: 44px;
     	font-weight: bold;
     	color: blue;
     	text-shadow:
@@ -55,7 +55,7 @@ h1 {
 }
 
    #highScore {
-    	font-size: 24px;
+    	font-size: 44px;
     	font-weight: bold;
     	color: #00ffee;
     	text-shadow:
@@ -65,7 +65,7 @@ h1 {
 }
 
    #author {
-    	font-size: 18px;
+    	font-size: 24px;
     	font-weight: bold;
     	color: blue;
     	text-shadow:
@@ -88,6 +88,64 @@ h1 {
 
 .game-container {
     position: relative;
+}
+
+.game-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+#pickupKey {
+
+    width: 220px;
+
+    padding: 15px;
+
+    border: 2px solid #00ffee;
+
+    background: rgba(0, 20, 40, 0.8);
+
+    border-radius: 10px;
+
+    color: #00ffee;
+
+    text-shadow:
+        0 0 5px #00ffee,
+        0 0 10px #00ffee;
+}
+
+.side-spacer {
+    width: 250px;
+}
+
+#pickupKey h3 {
+
+    margin-top: 0;
+
+    text-align: center;
+
+    color: #00ffee;
+
+    font-size: 24px;
+
+    text-shadow:
+        0 0 5px #fb00ff,
+        0 0 10px #fb00ff,
+        0 0 20px #fb00ff;
+}
+
+.pickupEntry {
+
+    margin-bottom: 20px;
+
+    padding-bottom: 10px;
+
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+
+    font-size: 16px;
+
+    line-height: 1.5;
 }
 
 #gameOverOverlay {
@@ -156,6 +214,45 @@ h1 {
     animation: startPulse 1.5s infinite;
 }
 
+#powerupTimer {
+    font-size: 24px;
+    font-weight: bold;
+    min-height: 30px;
+
+    color: #ffff00;
+
+    text-shadow:
+        0 0 10px #ffff00,
+        0 0 20px #ffff00;
+}
+
+#healthContainer {
+    width: 400px;
+    height: 20px;
+
+    border: 2px solid #00ffee;
+
+    background: #111;
+
+    margin: 10px 0;
+
+    overflow: hidden;
+}
+
+#healthBar {
+    width: 100%;
+    height: 100%;
+
+    background: linear-gradient(
+        90deg,
+        #00ff00,
+        #ffff00,
+        #ff0000
+    );
+
+    transition: width 0.1s linear;
+}
+
 @keyframes startPulse {
     0%, 100% {
         transform: scale(1);
@@ -172,26 +269,66 @@ h1 {
 
 <h1>🚨NEON-SNAKE🐍</h1>
 <div id="score">Score: 0</div>
-<div class="game-container">
-<div id="startOverlay">
-    <div id="startText">
-        🚨 NEON-SNAKE 🐍
-        <br><br>
-        Press SPACE to Start
-        <br><br>
-        <span style="font-size:24px;">
-            Use Arrow Keys to Move
-        </span>
+<div id="healthContainer">
+    <div id="healthBar"></div>
+</div>
+<div id="powerupTimer"></div>
+<div class="game-layout">
+
+    <div class="side-spacer"></div>
+
+    <div class="game-container">
+
+        <div id="startOverlay">
+            <div id="startText">
+                🚨 NEON-SNAKE 🐍
+                <br><br>
+                Press SPACE to Start
+                <br><br>
+                <span style="font-size:24px;">
+                    Use Arrow Keys to Move
+                </span>
+            </div>
+        </div>
+
+        <canvas id="game" width="700" height="700"></canvas>
+
+        <div id="gameOverOverlay">
+            <div id="gameOverText"></div>
+        </div>
+
     </div>
+
+    <div id="pickupKey">
+
+        <h3>Pickups</h3>
+
+        <div class="pickupEntry">
+            🍎 Apple<br>
+            +1 Score<br>
+	    Replenish Hunger
+        </div>
+
+        <div class="pickupEntry">
+            🌟 Golden Apple<br>
+            +5 Score
+        </div>
+
+        <div class="pickupEntry">
+            ⚡ Lightning Bolt<br>
+            Speed Boost<br>
+            2× Points
+        </div>
+
+	<div id="author">by Jordan-TB</div>
+
+    </div>
+
 </div>
 
-<canvas id="game" width="700" height="700"></canvas>
+<div id="highScore">High Score: 0</div>
 
-<div id="gameOverOverlay">
-	<div id="gameOverText"></div>
-</div>
-
-<div id="highScore">High Score: 0</div>   <div id="author">by Jordan-TB</div>
+<div id="gameOverText"></div>
 </div>
 
 <div id="message"></div>
@@ -238,6 +375,10 @@ let boosted = false;
 const NORMAL_SPEED = 100;
 const BOOST_SPEED = 50;
 
+//Health variables
+let health;
+const MAX_HEALTH = 100;
+
 
 //FPS counter
 let fps = 0;
@@ -261,6 +402,12 @@ goldenAppleTimer = 0;
 lightningBolt = null;
 lightningTimer = 0;
 boosted = false;
+
+//Health reset
+health = MAX_HEALTH;
+document.getElementById("healthBar").style.width = "100%";
+
+document.getElementById("powerupTimer").textContent = "";
 
 const startX = Math.floor(Math.random() * (tileCount - 6)) + 2;
 const startY = Math.floor(Math.random() * (tileCount - 6)) + 2;
@@ -323,6 +470,39 @@ if (directionQueue.length > 0) {
         x: snake[0].x + dx,
         y: snake[0].y + dy
     };
+
+ //Health drain
+ health -= boosted ? 0.25 : 0.5;
+
+ if (health <= 0) {
+
+    health = 0;
+
+    endGame("You Starved!");
+
+    return;
+}
+
+const healthBar =
+    document.getElementById("healthBar");
+
+healthBar.style.width = health + "%";
+
+if (health > 60) {
+
+    healthBar.style.background = "#00ff00";
+
+}
+else if (health > 30) {
+
+    healthBar.style.background = "#ffff00";
+
+}
+else {
+
+    healthBar.style.background = "#ff0000";
+}
+
 
     // Wall collision
     if (
@@ -440,9 +620,16 @@ if (boosted) {
 
     lightningTimer--;
 
+	document.getElementById("powerupTimer").textContent =
+    		"⚡ OVERCHARGE: " +
+    		(lightningTimer / 10).toFixed(1) +
+    "s";
+
     if (lightningTimer <= 0) {
 
         boosted = false;
+
+	document.getElementById("powerupTimer").textContent = "";
 
         clearInterval(gameLoop);
         gameLoop = setInterval(update, NORMAL_SPEED);
@@ -452,6 +639,8 @@ if (boosted) {
 
 // Eat food
 if (head.x === food.x && head.y === food.y) {
+
+    health = MAX_HEALTH;
 
     score += boosted ? 2 : 1;
 
@@ -642,19 +831,21 @@ ctx.shadowBlur = 2;
 
 }
 
-function endGame() {
+function endGame(reason = "Collision") {
     gameOver = true;
     clearInterval(gameLoop);
 
     const overlay = document.getElementById("gameOverOverlay");
     const text = document.getElementById("gameOverText");
 
-    text.innerHTML = `
-        GAME OVER<br>
-        Score: ${score}<br><br>
-	<div>High Score: ${highScore}</div>
-        Press SPACE to Restart
-    `;
+text.innerHTML = `
+    GAME OVER<br>
+    ${reason}<br><br>
+    Score: ${score}<br><br>
+    High Score: ${highScore}<br>
+    Press SPACE to Restart
+`;
+``
 
     overlay.style.display = "flex";
 }
