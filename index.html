@@ -20,8 +20,7 @@
 	background-position: center;
 	background-repeat: no-repeat;
 	background-attachment: fixed;
-  
-    );
+	transition: filter 0.15s ease;
 
 
         color: green;
@@ -258,16 +257,32 @@ h1 {
     animation: startPulse 1.5s infinite;
 }
 
-#powerupTimer {
+#timerContainer {
+    display: flex;
+    gap: 20px;
+    min-height: 30px;
+}
+
+#boostTimer,
+#phaseTimer {
     font-size: 24px;
     font-weight: bold;
-    min-height: 30px;
+}
 
+#boostTimer {
     color: #ffff00;
 
     text-shadow:
         0 0 10px #ffff00,
         0 0 20px #ffff00;
+}
+
+#phaseTimer {
+    color: #00ffff;
+
+    text-shadow:
+        0 0 10px #00ffff,
+        0 0 20px #00ffff;
 }
 
 #healthContainer {
@@ -316,7 +331,13 @@ h1 {
 <div id="healthContainer">
     <div id="healthBar"></div>
 </div>
-<div id="powerupTimer"></div>
+<div id="timerContainer">
+
+    <div id="boostTimer"></div>
+
+    <div id="phaseTimer"></div>
+
+</div>
 <div class="game-layout">
 
    <div id="topScores">
@@ -372,6 +393,18 @@ h1 {
             2× Points
         </div>
 
+	<div class="pickupEntry">
+    	⚔️ Cyber Sword<br>
+    	Halves Snake Length
+	</div>
+
+	<div class="pickupEntry">
+    	🔮 Phase Crystal<br>
+   	 No Self-Collision<br>
+    	10s Duration
+	</div>
+
+
 	<div id="author">by Jordan-TB</div>
 
     </div>
@@ -396,10 +429,31 @@ goldenAppleImg.src = "Golden-Apple.png";
 const lightningImg = new Image();
 lightningImg.src = "Lightning-Bolt.png";
 
+const swordImg = new Image();
+swordImg.src = "Cyber-Sword.png"
+
+const phaseCrystalImg = new Image();
+phaseCrystalImg.src = "Phase-Crystal.png"
+
 let snake;
 
 //apples
 let food;
+
+//Cyber-sword
+let cyberSword = null;
+let cyberSwordTimer = 0;
+
+let swordsSpawned = 0;
+const MAX_SWORDS = 3;
+
+const SWORD_THRESHOLDS = [25, 50, 100];
+
+//Phase-Crystal
+let phaseCrystal = null;
+let phaseCrystalTimer = 0;
+
+let phased = false;
 
 //Golden apple
 let goldenApple = null;
@@ -420,7 +474,7 @@ let lightningTimer = 0;
 let boosted = false;
 
 const NORMAL_SPEED = 100;
-const BOOST_SPEED = 50;
+const BOOST_SPEED = 75;
 
 //Health variables
 let health;
@@ -453,11 +507,24 @@ lightningBolt = null;
 lightningTimer = 0;
 boosted = false;
 
+//Cybersword reset
+cyberSword = null;
+cyberSwordTimer = 0;
+
+swordsSpawned = 0;
+
+//Phase crystal reset
+phaseCrystal = null;
+phaseCrystalTimer = 0;
+
+phased = false;
+
 //Health reset
 health = MAX_HEALTH;
 document.getElementById("healthBar").style.width = "100%";
 
-document.getElementById("powerupTimer").textContent = "";
+document.getElementById("boostTimer").textContent = "";
+document.getElementById("phaseTimer").textContent = "";
 
 const startX = Math.floor(Math.random() * (tileCount - 6)) + 2;
 const startY = Math.floor(Math.random() * (tileCount - 6)) + 2;
@@ -521,7 +588,7 @@ if (directionQueue.length > 0) {
     };
 
  //Health drain
- health -= boosted ? 0.25 : 0.5;
+ health -= boosted ? 0.375 : 0.5;
 
  if (health <= 0) {
 
@@ -565,12 +632,19 @@ else {
     }
 
     // Self collision
+if (!phased) {
+
     for (let segment of snake) {
-        if (head.x === segment.x && head.y === segment.y) {
+
+        if (
+            head.x === segment.x &&
+            head.y === segment.y
+        ) {
             endGame();
             return;
         }
     }
+}
 
     snake.unshift(head);
 
@@ -580,6 +654,25 @@ particles.forEach(p => {
 });
 
 particles = particles.filter(p => p.life > 0);
+
+
+//Phase crystal effect timer
+if (phased) {
+
+    phaseCrystalTimer--;
+
+    document.getElementById("phaseTimer").textContent =
+        "🔮 PHASE: " +
+        (phaseCrystalTimer / 10).toFixed(1) +
+        "s";
+
+    if (phaseCrystalTimer <= 0) {
+
+        phased = false;
+
+        document.getElementById("phaseTimer").textContent = "";
+    }
+}
 
 // Golden apple spawn
 if (!goldenApple && Math.random() < 0.005) {
@@ -629,7 +722,7 @@ if (goldenApple) {
 }
 
 //Spawn lightning bolt
-if (!lightningBolt && Math.random() < 0.01) {
+if (!lightningBolt && Math.random() < 0.008) {
 
     lightningBolt = {
         x: Math.floor(Math.random() * tileCount),
@@ -659,7 +752,7 @@ if (boosted) {
 
     lightningTimer--;
 
-	document.getElementById("powerupTimer").textContent =
+	document.getElementById("boostTimer").textContent =
     		"⚡ OVERCHARGE: " +
     		(lightningTimer / 10).toFixed(1) +
     "s";
@@ -668,13 +761,116 @@ if (boosted) {
 
         boosted = false;
 
-	document.getElementById("powerupTimer").textContent = "";
+	document.getElementById("boostTimer").textContent = "";
 
         clearInterval(gameLoop);
         gameLoop = setInterval(update, NORMAL_SPEED);
     }
 }
 
+//Cybersword logic
+if (
+    swordsSpawned < MAX_SWORDS &&
+    !cyberSword &&
+    score >= SWORD_THRESHOLDS[swordsSpawned]
+) {
+
+    if (Math.random() < 0.01) {
+
+        cyberSword = {
+            x: Math.floor(Math.random() * tileCount),
+            y: Math.floor(Math.random() * tileCount)
+        };
+
+        cyberSwordTimer = 100;
+        swordsSpawned++;
+    }
+}
+
+//Cybersword lifetime
+if (cyberSword) {
+
+    cyberSwordTimer--;
+
+    if (cyberSwordTimer <= 0) {
+        cyberSword = null;
+    }
+}
+
+//Cybersword collision
+
+if (
+    cyberSword &&
+    head.x === cyberSword.x &&
+    head.y === cyberSword.y
+) {
+
+    cyberSword = null;
+
+    //Flash effect
+
+    document.body.style.filter =
+        "brightness(2) hue-rotate(45deg)";
+
+    setTimeout(() => {
+        document.body.style.filter = "";
+    }, 150);
+
+    const newLength =
+        Math.max(
+            3,
+            Math.floor(snake.length / 2)
+        );
+
+    snake.length = newLength;
+}
+
+//Phase crystal spawn logic
+if (
+    score >= 10 &&
+    !phaseCrystal &&
+    !phased &&
+    Math.random() < 0.01
+) {
+
+    phaseCrystal = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+    };
+
+    phaseCrystalTimer = 100;
+}
+
+//Phase crystal lifetime
+if (phaseCrystal) {
+
+    phaseCrystalTimer--;
+
+    if (phaseCrystalTimer <= 0) {
+        phaseCrystal = null;
+    }
+}
+
+//Phase crystal pickup collision
+if (
+    phaseCrystal &&
+    head.x === phaseCrystal.x &&
+    head.y === phaseCrystal.y
+) {
+
+    phaseCrystal = null;
+
+document.body.style.filter =
+    "brightness(1.5) hue-rotate(180deg)";
+
+setTimeout(() => {
+    document.body.style.filter = "";
+}, 200);
+
+    phased = true;
+
+    phaseCrystalTimer = 100; // 10 seconds
+}
 
 // Eat food
 if (head.x === food.x && head.y === food.y) {
@@ -867,6 +1063,50 @@ if (lightningBolt) {
     ctx.restore();
 }
 
+//Cybersword
+if (cyberSword) {
+
+    const pulse =
+        (Math.sin(Date.now() / 100) + 1) * 3;
+
+    ctx.save();
+
+    ctx.shadowBlur = 25 + pulse;
+    ctx.shadowColor = "#ff00ff";
+
+    ctx.drawImage(
+        swordImg,
+        cyberSword.x * gridSize,
+        cyberSword.y * gridSize,
+        gridSize,
+        gridSize
+    );
+
+    ctx.restore();
+}
+
+//Phase Crystal
+if (phaseCrystal) {
+
+    const pulse =
+        (Math.sin(Date.now() / 100) + 1) * 4;
+
+    ctx.save();
+
+    ctx.shadowBlur = 25 + pulse;
+    ctx.shadowColor = "#00ffff";
+
+    ctx.drawImage(
+        phaseCrystalImg,
+        phaseCrystal.x * gridSize,
+        phaseCrystal.y * gridSize,
+        gridSize,
+        gridSize
+    );
+
+    ctx.restore();
+}
+
 // RESET SHADOWS
 ctx.shadowBlur = 0;
 ctx.shadowColor = "transparent";
@@ -874,18 +1114,121 @@ ctx.shadowColor = "transparent";
     // Snake
 snake.forEach((segment, index) => {
 
+if (phased) {
+
+    if (phaseCrystalTimer <= 20) {
+
+        // Severe instability (last 2 seconds)
+        ctx.globalAlpha =
+            Math.random() < 0.5
+                ? 0.05
+                : 1;
+
+    }
+    else if (phaseCrystalTimer <= 40) {
+
+        // Moderate instability (2-4 seconds left)
+        ctx.globalAlpha =
+            Math.random() < 0.3
+                ? 0.15
+                : 0.7;
+
+    }
+    else {
+
+        // Stable phase effect
+        ctx.globalAlpha = 0.3;
+    }
+
+} else {
+
+    ctx.globalAlpha = 1;
+}
+if (phased) {
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = "#00ffff";
+}
+
     const hue = (index * 18 + Date.now() / 50) % 360;
 
-    if (boosted) {
+if (boosted) {
 
-    const electricHue =
-        (Date.now() / 5) % 360;
+    if (lightningTimer <= 20) {
+
+        const colours = [
+            "#ffff00", // yellow
+            "#ffffff", // white
+            "#ff4444"  // red
+        ];
+
+        ctx.fillStyle =
+            colours[
+                Math.floor(
+                    Math.random() * colours.length
+                )
+            ];
+
+        ctx.shadowBlur =
+            Math.random() < 0.5 ? 5 : 40;
+
+        ctx.shadowColor =
+            Math.random() < 0.3
+                ? "#ff3333"
+                : "#ffff00";
+
+    }
+    else if (lightningTimer <= 40) {
+
+        ctx.fillStyle =
+            Math.random() < 0.2
+                ? "#ffffff"
+                : "#ffff00";
+
+        ctx.shadowBlur =
+            Math.random() < 0.3 ? 10 : 25;
+
+        ctx.shadowColor = "#ffff00";
+
+    }
+    else {
+
+        const electricHue =
+            (Date.now() / 5) % 360;
+
+        ctx.fillStyle =
+            `hsl(${electricHue},100%,70%)`;
+
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#ffff00";
+    }
+}
+else if (phased) {
+
+    const pulse =
+        (Math.sin(Date.now() / 100) + 1) * 10;
+
+    if (phaseCrystalTimer <= 20) {
+
+    const colours = [
+        "#00ffff",
+        "#ffffff",
+        "#ff00ff"
+    ];
 
     ctx.fillStyle =
-        `hsl(${electricHue},100%,70%)`;
+        colours[
+            Math.floor(
+                Math.random() * colours.length
+            )
+        ];
 
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "#ffff00";
+} else {
+
+    ctx.fillStyle = "#7df9ff";
+}
+
+    ctx.shadowBlur = 20 + pulse;
+    ctx.shadowColor = "#00ffff";
 }
 else {
 
@@ -893,6 +1236,14 @@ else {
         `hsl(${hue},100%,50%)`;
 
     ctx.shadowBlur = 0;
+}
+
+if (boosted && lightningTimer <= 20) {
+
+    ctx.globalAlpha =
+        Math.random() < 0.4
+            ? 0.2
+            : 1;
 }
 
     ctx.fillRect(
@@ -903,7 +1254,11 @@ else {
     );
 });
 
-ctx.shadowBlur = 2;
+ctx.globalAlpha = 1;
+
+ctx.shadowBlur = 0;
+
+ctx.shadowColor = "transparent";
 
 }
 
