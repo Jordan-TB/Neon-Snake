@@ -662,15 +662,18 @@ function update() {
 
 if (paused) return;
 
-if (directionQueue.length > 0) {
+while (directionQueue.length > 0) {
 
-    const nextMove = directionQueue.shift();
+    const nextMove =
+        directionQueue.shift();
 
     if (
-        !(nextMove.dx === -dx && nextMove.dy === -dy)
+        !(nextMove.dx === -dx &&
+          nextMove.dy === -dy)
     ) {
         dx = nextMove.dx;
         dy = nextMove.dy;
+        break;
     }
 }
     if (gameOver) return;
