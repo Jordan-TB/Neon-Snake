@@ -492,6 +492,15 @@ swordImg.src = "Cyber-Sword.png"
 const phaseCrystalImg = new Image();
 phaseCrystalImg.src = "Phase-Crystal.png"
 
+const snakeHeadImg = new Image();
+snakeHeadImg.src = "Snake-Head.png";
+
+const snakeBodyImg = new Image();
+snakeBodyImg.src = "Snake-Body.png";
+
+const snakeTailImg = new Image();
+snakeTailImg.src = "Snake-Tail.png";
+
 //snake
 let snake;
 
@@ -1220,147 +1229,225 @@ ctx.shadowBlur = 0;
 ctx.shadowColor = "transparent";
 
     // Snake
+// Snake
 snake.forEach((segment, index) => {
 
+    const centerX =
+        segment.x * gridSize +
+        gridSize / 2;
+
+    const centerY =
+        segment.y * gridSize +
+        gridSize / 2;
+
+    ctx.save();
+
+    ctx.translate(centerX, centerY);
+
+// Default snake glow
+
+ctx.shadowBlur = 12;
+ctx.shadowColor = "#00ffee";
+
+// Reset effect values
+let glowColour = null;
+let glowStrength = 0;
+
+// PHASE EFFECT
 if (phased) {
+
+    glowColour = "#00ffff";
+    glowStrength = 20;
 
     if (phaseCrystalTimer <= 20) {
 
-        // Severe instability (last 2 seconds)
         ctx.globalAlpha =
-            Math.random() < 0.5
-                ? 0.05
-                : 1;
+            Math.random() < 0.5 ? 0.05 : 1;
 
     }
     else if (phaseCrystalTimer <= 40) {
 
-        // Moderate instability (2-4 seconds left)
         ctx.globalAlpha =
-            Math.random() < 0.3
-                ? 0.15
-                : 0.7;
+            Math.random() < 0.3 ? 0.15 : 0.7;
 
     }
     else {
 
-        // Stable phase effect
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = 0.35;
+    }
+}
+
+// BOOST EFFECT
+if (boosted) {
+
+    glowStrength += 25;
+
+    if (glowColour) {
+
+        // Alternate between both colours
+        glowColour =
+            Math.sin(Date.now() / 100)
+                > 0
+                ? "#00ffff"
+                : "#ffff00";
+
+    } else {
+
+        glowColour = "#ffff00";
     }
 
-} else {
+    if (lightningTimer <= 20) {
 
-    ctx.globalAlpha = 1;
+        ctx.globalAlpha *=
+            Math.random() < 0.4
+                ? 0.3
+                : 1;
+    }
 }
-if (phased) {
+
+// Apply glow
+if (boosted && phased) {
+
+    ctx.shadowBlur = 50;
+
+    ctx.shadowColor =
+        Math.sin(Date.now() / 80) > 0
+            ? "#ffff00"
+            : "#00ffff";
+}
+else if (boosted) {
+
+    ctx.shadowBlur = 40;
+    ctx.shadowColor = "#ffff00";
+}
+else if (phased) {
+
     ctx.shadowBlur = 25;
     ctx.shadowColor = "#00ffff";
 }
 
-    const hue = (index * 18 + Date.now() / 50) % 360;
+    const spriteSize = gridSize;
 
-if (boosted) {
+if (index !== 0){
 
-    if (lightningTimer <= 20) {
+if (goldenApple) {
 
-        const colours = [
-            "#ffff00", // yellow
-            "#ffffff", // white
-            "#ff4444"  // red
-        ];
+    ctx.shadowBlur += 5;
 
-        ctx.fillStyle =
-            colours[
-                Math.floor(
-                    Math.random() * colours.length
-                )
-            ];
-
-        ctx.shadowBlur =
-            Math.random() < 0.5 ? 5 : 40;
-
-        ctx.shadowColor =
-            Math.random() < 0.3
-                ? "#ff3333"
-                : "#ffff00";
-
-    }
-    else if (lightningTimer <= 40) {
-
-        ctx.fillStyle =
-            Math.random() < 0.2
-                ? "#ffffff"
-                : "#ffff00";
-
-        ctx.shadowBlur =
-            Math.random() < 0.3 ? 10 : 25;
-
-        ctx.shadowColor = "#ffff00";
-
-    }
-    else {
-
-        const electricHue =
-            (Date.now() / 5) % 360;
-
-        ctx.fillStyle =
-            `hsl(${electricHue},100%,70%)`;
-
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = "#ffff00";
-    }
+    ctx.shadowColor =
+        "#FFD700";
 }
-else if (phased) {
-
-    const pulse =
-        (Math.sin(Date.now() / 100) + 1) * 10;
-
-    if (phaseCrystalTimer <= 20) {
-
-    const colours = [
-        "#00ffff",
-        "#ffffff",
-        "#ff00ff"
-    ];
-
-    ctx.fillStyle =
-        colours[
-            Math.floor(
-                Math.random() * colours.length
-            )
-        ];
-
-} else {
-
-    ctx.fillStyle = "#7df9ff";
 }
 
-    ctx.shadowBlur = 20 + pulse;
-    ctx.shadowColor = "#00ffff";
+// HEAD
+if (index === 0) {
+
+    // Ignore all pickup effects
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#00ffee";
+
+    let rotation = 0;
+
+    if (dx === 1) rotation = -Math.PI / 2;
+    else if (dx === -1) rotation = Math.PI / 2;
+    else if (dy === -1) rotation = Math.PI;
+    else if (dy === 1) rotation = 0;
+
+    ctx.rotate(rotation);
+
+    const headSize = gridSize * 1.1;
+
+    ctx.drawImage(
+        snakeHeadImg,
+        -headSize / 2,
+        -headSize / 2,
+        headSize,
+        headSize
+    );
 }
+
+    // TAIL
+    else if (
+        index === snake.length - 1 &&
+        snake.length > 1
+    ) {
+
+        const tail = snake[index];
+        const prev = snake[index - 1];
+
+        const tailDx = prev.x - tail.x;
+        const tailDy = prev.y - tail.y;
+
+        let rotation = 0;
+
+// Snake-Tail.png points UP by default
+
+if (tailDx === 1) {
+    rotation = Math.PI / 2;
+}
+else if (tailDx === -1) {
+    rotation = -Math.PI / 2;
+}
+else if (tailDy === 1) {
+    rotation = Math.PI;
+}
+else if (tailDy === -1) {
+    rotation = 0;
+}
+``
+const tailSize = gridSize;
+
+        ctx.rotate(rotation);
+
+        ctx.drawImage(
+            snakeTailImg,
+            -tailSize / 2,
+            -tailSize / 2,
+            tailSize,
+            tailSize
+        );
+    }
+
+    // BODY
 else {
 
-    ctx.fillStyle =
-        `hsl(${hue},100%,50%)`;
+    const prev = snake[index - 1];
+    const next = snake[index + 1];
 
-    ctx.shadowBlur = 0;
-}
+    let rotation = 0;
 
-if (boosted && lightningTimer <= 20) {
+    if (next) {
 
-    ctx.globalAlpha =
-        Math.random() < 0.4
-            ? 0.2
-            : 1;
-}
+        if (prev.x !== next.x) {
 
-    ctx.fillRect(
-        segment.x * gridSize + 1,
-        segment.y * gridSize + 1,
-        gridSize - 2,
-        gridSize - 2
+            // Horizontal body
+            rotation = Math.PI / 2;
+
+        } else {
+
+            // Vertical body
+            rotation = 0;
+        }
+    }
+
+    ctx.rotate(rotation);
+
+    ctx.drawImage(
+        snakeBodyImg,
+        -spriteSize / 2,
+        -spriteSize / 2,
+        spriteSize,
+        spriteSize
     );
+}
+
+    ctx.restore();
 });
+
+ctx.globalAlpha = 1;
+ctx.shadowBlur = 0;
+ctx.shadowColor = "transparent";
 
 ctx.globalAlpha = 1;
 
