@@ -15,12 +15,18 @@
         align-items: center;
         flex-direction: column;
         height: 100vh;
-        background-image: url("Vaporwave.png");
-	background-size: cover;
+
+	background-image: url("Vaporwave.png");
+	background-size: 110%;
 	background-position: center;
 	background-repeat: no-repeat;
 	background-attachment: fixed;
+
+	animation: vaporwaveZoom 30s ease-in-out infinite;
+
+
 	transition: filter 0.15s ease;
+	overflow: hidden;
 
 
         color: green;
@@ -47,6 +53,18 @@ h1 {
 
     50% {
         transform: scale(1.1);
+    }
+}
+
+@keyframes vaporwaveZoom {
+
+    0%, 100% {
+        background-size: 100%;
+    }
+
+    50% {
+        background-size: 135%;
+	background-position: center 40%;
     }
 }
 
@@ -386,7 +404,7 @@ h1 {
 </div>
 
 <div id="hudHint">
-    Press P for Statistics
+    Press P for Statistics • Press M to Mute
 </div>
 
 <div class="game-layout">
@@ -501,6 +519,44 @@ snakeBodyImg.src = "Snake-Body.png";
 const snakeTailImg = new Image();
 snakeTailImg.src = "Snake-Tail.png";
 
+//Background music
+const music = new Audio("neon-snake.mp3");
+
+//Pickup sound
+const pickupSound = new Audio("Pickup.mp3");
+
+//Phaser pickup sound
+const phaserSound = new Audio("Phaser.mp3");
+
+//Lightning sound
+const lightningSound = new Audio("Lightning-Zap.mp3");
+
+//Cybersword sound
+const swordSound = new Audio("Sword-Slice.mp3");
+
+//Death sound
+const deathSound = new Audio("Explosion.mp3");
+deathSound.preload = "auto";
+
+//Button press
+const hudSound = new Audio("ButtonPress.mp3");
+
+
+music.loop = true;
+music.volume = 0.03;
+
+pickupSound.volume = 0.05;
+
+phaserSound.volume = 0.08;
+
+lightningSound.volume = 0.08;
+
+swordSound.volume = 0.08;
+
+deathSound.volume = 0.08;
+
+hudSound.volume = 0.08;
+
 //snake
 let snake;
 
@@ -512,11 +568,7 @@ let food;
 //Cyber-sword
 let cyberSword = null;
 let cyberSwordTimer = 0;
-
-let swordsSpawned = 0;
-const MAX_SWORDS = 4;
-
-const SWORD_THRESHOLDS = [50, 100, 150, 200];
+let nextSwordScore = 50;
 
 //Phase-Crystal
 let phaseCrystal = null;
@@ -557,6 +609,9 @@ let lastFpsUpdate = performance.now();
 
 let gameStarted = false;
 
+//Mute sound
+let muted = false;
+
 //Queued inputs to prevent false deaths
 let directionQueue = [];
 
@@ -593,6 +648,9 @@ let stats =
 
 function initGame() {
 
+//Pause
+paused = false;
+
 //Update player stats
 stats.gamesPlayed++;
 
@@ -610,8 +668,7 @@ boosted = false;
 //Cybersword reset
 cyberSword = null;
 cyberSwordTimer = 0;
-
-swordsSpawned = 0;
+nextSwordScore = 50;
 
 //Phase crystal reset
 phaseCrystal = null;
@@ -655,6 +712,10 @@ dy = dir.dy;
     document.getElementById("gameOverOverlay").style.display = "none";
 
     clearInterval(gameLoop);
+    
+    music.currentTime = 0;
+    music.play();
+
     gameLoop = setInterval(update, 100);
 }
 
@@ -732,6 +793,7 @@ else {
         head.x >= tileCount ||
         head.y >= tileCount
     ) {
+
         endGame();
         return;
     }
@@ -817,6 +879,12 @@ if (
     stats.goldenApplesEaten++;
     score += boosted ? 10 : 5;
 
+    pickupSound.playbackRate = 1;
+
+    pickupSound.currentTime = 0;
+    pickupSound.play()
+        .catch(() => {});
+
     document.getElementById("score").textContent =
         "Score: " + score;
 
@@ -848,6 +916,12 @@ if (
     head.x === lightningBolt.x &&
     head.y === lightningBolt.y
 ) {
+
+    lightningSound.playbackRate = 1;
+
+    lightningSound.currentTime = 0;
+    lightningSound.play()
+        .catch(() => {});
 
     stats.lightningCollected++;
     lightningBolt = null;
@@ -883,9 +957,8 @@ if (boosted) {
 
 //Cybersword logic
 if (
-    swordsSpawned < MAX_SWORDS &&
     !cyberSword &&
-    score >= SWORD_THRESHOLDS[swordsSpawned]
+    score >= nextSwordScore
 ) {
 
     if (Math.random() < 0.01) {
@@ -896,7 +969,8 @@ if (
         };
 
         cyberSwordTimer = 100;
-        swordsSpawned++;
+
+        nextSwordScore += 50;
     }
 }
 
@@ -917,6 +991,12 @@ if (
     head.x === cyberSword.x &&
     head.y === cyberSword.y
 ) {
+
+    swordSound.playbackRate = 1;
+
+    swordSound.currentTime = 0;
+    swordSound.play()
+        .catch(() => {});
 
     stats.swordsCollected++;
     cyberSword = null;
@@ -972,6 +1052,12 @@ if (
     head.y === phaseCrystal.y
 ) {
 
+    phaserSound.playbackRate = 1;
+
+    phaserSound.currentTime = 0;
+    phaserSound.play()
+        .catch(() => {});
+
     stats.phaseCrystalsCollected++;
     phaseCrystal = null;
 
@@ -995,6 +1081,13 @@ if (head.x === food.x && head.y === food.y) {
     stats.applesEaten++;	
 
     score += boosted ? 2 : 1;
+
+    pickupSound.playbackRate =
+	0.9 + Math.random() * 0.2;
+
+    pickupSound.currentTime = 0;
+    pickupSound.play()
+        .catch(() => {});
 
     document.getElementById("score").textContent =
         "Score: " + score;
@@ -1086,6 +1179,35 @@ function draw() {
     	ctx.moveTo(0, i);
     	ctx.lineTo(canvas.width, i);
     	ctx.stroke();
+}
+
+for (let i = 0; i < 150; i++) {
+
+    const x =
+        (i * 73 + Date.now() / 20)
+        % canvas.width;
+
+    const y =
+        (i * 97)
+        % canvas.height;
+
+    const size =
+        Math.random() < 0.8
+            ? 1
+            : 2;
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.8)";
+
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = "#00ffee";
+
+    ctx.fillRect(
+        x,
+        y,
+        size,
+        size
+    );
 }
 
 ctx.fill();
@@ -1395,7 +1517,6 @@ else if (tailDy === 1) {
 else if (tailDy === -1) {
     rotation = 0;
 }
-``
 const tailSize = gridSize;
 
         ctx.rotate(rotation);
@@ -1534,6 +1655,13 @@ function showStats() {
 function endGame(reason = "Collision") {
     gameOver = true;
 
+    music.pause();
+
+    deathSound.currentTime = 0;
+
+    deathSound.play()
+        .catch(() => {});
+
     topScores.push(score);
 
     topScores.sort((a, b) => b - a);
@@ -1576,10 +1704,25 @@ text.innerHTML = `
 document.addEventListener("keydown", (e) => {
     const key = e.key;
 
+    if (
+        key === "ArrowUp" ||
+        key === "ArrowDown" ||
+        key === "ArrowLeft" ||
+        key === "ArrowRight" ||
+        key === " "
+    ) {
+        e.preventDefault();
+    }
+
     // Start Game
     if (!gameStarted && key === " ") {
 
         gameStarted = true;
+
+	    hudSound.currentTime = 0;
+
+    hudSound.play()
+        .catch(() => {});
 
         document.getElementById("startOverlay").style.display = "none";
 
@@ -1593,6 +1736,14 @@ document.addEventListener("keydown", (e) => {
         initGame();
         return;
     }
+
+//Mute game
+if (key === "m" || key === "M") {
+
+    muted = !muted;
+
+    music.muted = muted;
+}
 
 if (
     gameStarted &&
@@ -1609,7 +1760,15 @@ if (
 
         overlay.style.display = "none";
 
+    hudSound.currentTime = 0;
+
+    hudSound.play()
+        .catch(() => {});
+
         paused = false;
+
+	music.play().catch(() => {});
+
         document.getElementById("hudHint").style.visibility = "visible";
 
     } else {
@@ -1617,7 +1776,13 @@ if (
         document.getElementById("hudHint").style.visibility = "hidden";
         showStats();
 
+    hudSound.currentTime = 0;
+
+    hudSound.play()
+        .catch(() => {});
+
         paused = true;
+	music.pause();
 
 
     }
