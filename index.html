@@ -585,9 +585,6 @@ let score;
 let gameOver;
 let gameLoop;
 
-//Particle effects
-let particles = [];
-
 //Speed boost pickup
 let lightningBolt = null;
 let lightningTimer = 0;
@@ -820,14 +817,6 @@ stats.longestSnake =
         stats.longestSnake,
         snake.length
     );
-
-particles.forEach(p => {
-    p.life -= 0.03;
-    p.size *= 0.98;
-});
-
-particles = particles.filter(p => p.life > 0);
-
 
 //Phase crystal effect timer
 if (phased) {
@@ -1157,89 +1146,68 @@ if (index === 2)
             .join("");
 }
 
+//Background grid creation
+const backgroundCanvas =
+    document.createElement("canvas");
+
+backgroundCanvas.width = canvas.width;
+backgroundCanvas.height = canvas.height;
+
+const bgCtx =
+    backgroundCanvas.getContext("2d");
+
+const backgroundGradient =
+    bgCtx.createLinearGradient(
+        0, 0,
+        canvas.width,
+        canvas.height
+    );
+
+backgroundGradient.addColorStop(0, "#1a0033");
+backgroundGradient.addColorStop(1, "#003366");
+
+bgCtx.fillStyle = backgroundGradient;
+bgCtx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+);
+
+bgCtx.strokeStyle =
+    "rgba(255,255,255,0.08)";
+
+for (
+    let i = 0;
+    i < canvas.width;
+    i += gridSize
+) {
+    bgCtx.beginPath();
+    bgCtx.moveTo(i, 0);
+    bgCtx.lineTo(i, canvas.height);
+    bgCtx.stroke();
+
+    bgCtx.beginPath();
+    bgCtx.moveTo(0, i);
+    bgCtx.lineTo(canvas.width, i);
+    bgCtx.stroke();
+}
+
+
 function draw() {
 
-    // Background
-	const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-	gradient.addColorStop(0, "#1a0033");
-	gradient.addColorStop(1, "#003366");
-
-	ctx.fillStyle = gradient;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-	ctx.strokeStyle = "rgba(255,255,255,0.08)";
-
-	for (let i = 0; i < canvas.width; i += gridSize) {
-    	ctx.beginPath();
-    	ctx.moveTo(i, 0);
-    	ctx.lineTo(i, canvas.height);
-    	ctx.stroke();
-
-    	ctx.beginPath();
-    	ctx.moveTo(0, i);
-    	ctx.lineTo(canvas.width, i);
-    	ctx.stroke();
-}
-
-for (let i = 0; i < 150; i++) {
-
-    const x =
-        (i * 73 + Date.now() / 20)
-        % canvas.width;
-
-    const y =
-        (i * 97)
-        % canvas.height;
-
-    const size =
-        Math.random() < 0.8
-            ? 1
-            : 2;
-
-    ctx.fillStyle =
-        "rgba(255,255,255,0.8)";
-
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = "#00ffee";
-
-    ctx.fillRect(
-        x,
-        y,
-        size,
-        size
-    );
-}
-
-ctx.fill();
-
-ctx.shadowBlur = 0;
-
-particles.forEach(p => {
-
-    ctx.save();
-
-    ctx.globalAlpha = p.life;
-
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#00ffee";
-
-    const hue = (Date.now() / 10 + p.x + p.y) % 360;
-    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-    ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
-
-    ctx.beginPath();
-    ctx.arc(
-        p.x,
-        p.y,
-        p.size,
+    ctx.clearRect(
         0,
-        Math.PI * 2
+        0,
+        canvas.width,
+        canvas.height
     );
-    ctx.fill();
 
-    ctx.restore();
-});
-
+    ctx.drawImage(
+        backgroundCanvas,
+        0,
+        0
+    );
 
     // Food
 
@@ -1350,7 +1318,28 @@ if (phaseCrystal) {
 ctx.shadowBlur = 0;
 ctx.shadowColor = "transparent";
 
-    // Snake
+let phaseAlpha = 1;
+
+if (phased) {
+
+    if (phaseCrystalTimer <= 20) {
+
+        phaseAlpha =
+            Math.random() < 0.5 ? 0.05 : 1;
+
+    }
+    else if (phaseCrystalTimer <= 40) {
+
+        phaseAlpha =
+            Math.random() < 0.3 ? 0.15 : 0.7;
+
+    }
+    else {
+
+        phaseAlpha = 0.35;
+    }
+}
+
 // Snake
 snake.forEach((segment, index) => {
 
@@ -1377,26 +1366,7 @@ let glowStrength = 0;
 
 // PHASE EFFECT
 if (phased) {
-
-    glowColour = "#00ffff";
-    glowStrength = 20;
-
-    if (phaseCrystalTimer <= 20) {
-
-        ctx.globalAlpha =
-            Math.random() < 0.5 ? 0.05 : 1;
-
-    }
-    else if (phaseCrystalTimer <= 40) {
-
-        ctx.globalAlpha =
-            Math.random() < 0.3 ? 0.15 : 0.7;
-
-    }
-    else {
-
-        ctx.globalAlpha = 0.35;
-    }
+    ctx.globalAlpha = phaseAlpha;
 }
 
 // BOOST EFFECT
@@ -1430,7 +1400,7 @@ if (boosted) {
 // Apply glow
 if (boosted && phased) {
 
-    ctx.shadowBlur = 50;
+    ctx.shadowBlur = 15;
 
     ctx.shadowColor =
         Math.sin(Date.now() / 80) > 0
@@ -1439,12 +1409,12 @@ if (boosted && phased) {
 }
 else if (boosted) {
 
-    ctx.shadowBlur = 40;
+    ctx.shadowBlur = 15;
     ctx.shadowColor = "#ffff00";
 }
 else if (phased) {
 
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 10;
     ctx.shadowColor = "#00ffff";
 }
 
